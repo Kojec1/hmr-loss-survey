@@ -219,7 +219,7 @@ class TFRecordConverter(abc.ABC):
 
         kp2d[:, 0] *= scale[0]
         kp2d[:, 1] *= scale[1]
-        center = np.round(center * scale).astype(np.int)
+        center = np.round(center * scale).astype(int)
 
         # crop image (2 * margin) x (2 * margin) around the center
         top_left = np.maximum(center - self.config.margin, 0).astype(int)
