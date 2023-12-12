@@ -10,6 +10,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 
+# DEBUG
+tf.config.run_functions_eagerly(True)
+
 try:
     from IPython import get_ipython
 
@@ -138,7 +141,7 @@ class Model:
             dataset = Dataset()
             ds_train = dataset.get_train()
             ds_smpl = dataset.get_smpl()
-            ds_val = dataset.get_val()
+            # ds_val = dataset.get_val()
 
         start = 1
         if self.config.RESTORE_EPOCH:
@@ -158,12 +161,12 @@ class Model:
 
             self._log_train(epoch=epoch)
 
-            total = int(self.config.NUM_VALIDATION_SAMPLES / self.config.BATCH_SIZE)
-            for image_data in tqdm(ds_val, total=total, position=0, desc='validate'):
-                images, kp2d, kp3d, has3d = image_data[0], image_data[1], image_data[2], image_data[3]
-                self._val_step(images, kp2d, kp3d, has3d)
-
-            self._log_val(epoch=epoch)
+            # total = int(self.config.NUM_VALIDATION_SAMPLES / self.config.BATCH_SIZE)
+            # for image_data in tqdm(ds_val, total=total, position=0, desc='validate'):
+            #     images, kp2d, kp3d, has3d = image_data[0], image_data[1], image_data[2], image_data[3]
+            #     self._val_step(images, kp2d, kp3d, has3d)
+            #
+            # self._log_val(epoch=epoch)
 
             print('Time taken for epoch {} is {} sec\n'.format(epoch, time.time() - start))
 
@@ -186,7 +189,8 @@ class Model:
             _, kp2d_pred, kp3d_pred, pose_pred, shape_pred, _ = generator_outputs[-1]
 
             vis = tf.expand_dims(kp2d[:, :, 2], -1)
-            kp2d_loss = v1_loss.absolute_difference(kp2d[:, :, :2], kp2d_pred, weights=vis)
+            # kp2d_loss = v1_loss.absolute_difference(kp2d[:, :, :2], kp2d_pred, weights=vis)
+            kp2d_loss = v1_loss.mean_squared_error(kp2d[:, :, :2], kp2d_pred, weights=vis) * 0.5
             kp2d_loss = kp2d_loss * self.config.GENERATOR_2D_LOSS_WEIGHT
 
             if self.config.USE_3D:
@@ -198,7 +202,8 @@ class Model:
                 kp3d_real = tf.reshape(kp3d_real, [batch_size, -1])
                 kp3d_pred = tf.reshape(kp3d_pred, [batch_size, -1])
 
-                kp3d_loss = v1_loss.mean_squared_error(kp3d_real, kp3d_pred, weights=has3d) * 0.5
+                # kp3d_loss = v1_loss.mean_squared_error(kp3d_real, kp3d_pred, weights=has3d) * 0.5
+                kp3d_loss = v1_loss.absolute_difference(kp3d_real, kp3d_pred, weights=has3d)
                 kp3d_loss = kp3d_loss * self.config.GENERATOR_3D_LOSS_WEIGHT
 
                 """Calculating pose and shape loss basically makes no sense
@@ -217,7 +222,8 @@ class Model:
                 has_smpl = tf.expand_dims(has_smpl, -1)
                 pose_shape_real = tf.zeros(pose_shape_pred.shape)
 
-                ps_loss = v1_loss.mean_squared_error(pose_shape_real, pose_shape_pred, weights=has_smpl) * 0.5
+                # ps_loss = v1_loss.mean_squared_error(pose_shape_real, pose_shape_pred, weights=has_smpl) * 0.5
+                ps_loss = v1_loss.absolute_difference(pose_shape_real, pose_shape_pred, weights=has_smpl)
                 ps_loss = ps_loss * self.config.GENERATOR_3D_LOSS_WEIGHT
 
             # use all poses and shapes from iterative feedback loop
