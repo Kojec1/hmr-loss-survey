@@ -281,8 +281,13 @@ class Model:
         return real_disc_input
 
     def _log_train(self, epoch):
-        template = 'Generator Loss: {}, Discriminator Loss: {}'
-        print(template.format(self.generator_loss_log.result(), self.discriminator_loss_log.result()))
+        template = 'Generator Loss: {}, Discriminator Loss: {}, KP2D Loss: {}, KP3D Loss: {}, Pose Loss: {}'
+        print(template.format(self.generator_loss_log.result(),
+                              self.discriminator_loss_log.result(),
+                              self.kp2d_loss_log.result(),
+                              self.kp3d_loss_log.result(),
+                              self.pose_shape_loss_log.result()
+                              ))
 
         with self.summary_writer.as_default():
             tf.summary.scalar('generator_loss', self.generator_loss_log.result(), step=epoch)
