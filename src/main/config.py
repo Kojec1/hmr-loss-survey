@@ -24,7 +24,7 @@ class Config(object):
     ROOT_PROJECT_DIR = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
 
     # root data directory
-    ROOT_DATA_DIR = os.path.join('/', 'data', 'ssd1', 'russales')
+    ROOT_DATA_DIR = os.path.join('/', 'development', 'datasets')
 
     # path to save training models to
     LOG_DIR = os.path.join(ROOT_DATA_DIR, 'logs', datetime.now().strftime("%d%m%Y-%H%M%S"))
@@ -98,19 +98,20 @@ class Config(object):
     INITIALIZE_CUSTOM_REGRESSOR = False
 
     # number of epochs to train
-    EPOCHS = 55
+    EPOCHS = 100
 
     # effective batch size
-    BATCH_SIZE = 64
+    BATCH_SIZE = 128
 
     # number of parallel read tf record files
-    NUM_PARALLEL = 16
+    NUM_PARALLEL = 32
 
     # seed for random shuffle
     SEED = 42
 
     # list of datasets to use for training
-    DATASETS = ['lsp', 'lsp_ext', 'mpii', 'coco', 'mpii_3d', 'h36m', 'total_cap']
+    # DATASETS = ['lsp', 'lsp_ext', 'mpii', 'coco', 'mpii_3d', 'h36m', 'total_cap']
+    DATASETS = ['lsp_ext', 'mpii', 'mpii_3d', 'coco']
 
     # datasets to use for adversarial prior training
     SMPL_DATASETS = ['cmu', 'joint_lim']  # , 'h36m']
@@ -209,14 +210,14 @@ class Config(object):
         """
         train_samples_per_dataset = {
             'tfrecords': {
-                'lsp': 999,
+#                'lsp': 999,
                 'lsp_ext': 9896,
                 'mpii': 16125,
                 'coco': 98101,
 
                 'mpii_3d': 166311,
-                'h36m': 311950,
-                'total_cap': 75060,
+#                'h36m': 311950,
+#                'total_cap': 75060,
 
                 'cmu': 3934266,
                 'joint_lim': 181967,
@@ -251,9 +252,9 @@ class Config(object):
 
         val_samples_per_dataset = {
             'tfrecords': {
-                'lsp': 997,
+#                'lsp': 997,
                 'coco': 3984,
-                'h36m': 6482,
+#                'h36m': 6482,
             },
             'tfrecords_with_toes': {
                 'lsp': 997,
@@ -270,8 +271,8 @@ class Config(object):
         test_samples_per_dataset = {
             'tfrecords': {
                 'mpii_3d': 2874,
-                'h36m': 110128,
-                'total_cap': 73871,
+#                'h36m': 110128,
+#                'total_cap': 73871,
             },
             'tfrecords_with_toes': {
                 'h36m': 110128,

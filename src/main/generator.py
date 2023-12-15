@@ -75,14 +75,14 @@ class Generator(tf.keras.Model):
                 # Nevertheless this is not needed as training seems to be likely stable.
                 # See https://www.tensorflow.org/guide/migrate#a_note_on_slim_contriblayers for more
                 # migration insights
-                setattr(layer, 'padding', 'same')
+            #    setattr(layer, 'padding', 'same')
                 setattr(layer, 'kernel_initializer', vs_initializer)
                 setattr(layer, 'kernel_regularizer', l2_regularizer)
             if isinstance(layer, layers.BatchNormalization):
                 setattr(layer, 'momentum', 0.997)
                 setattr(layer, 'epsilon', 1e-5)
-            if isinstance(layer, layers.MaxPooling2D):
-                setattr(layer, 'padding', 'same')
+            # if isinstance(layer, layers.MaxPooling2D):
+            #    setattr(layer, 'padding', 'same')
 
     def call(self, inputs, **kwargs):
         check = inputs.shape[1:] == self.enc_shape
