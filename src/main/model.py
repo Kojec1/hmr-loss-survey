@@ -10,6 +10,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 
+tf.config.run_functions_eagerly(True)
+
 try:
     from IPython import get_ipython
 
@@ -186,7 +188,8 @@ class Model:
             _, kp2d_pred, kp3d_pred, pose_pred, shape_pred, _ = generator_outputs[-1]
 
             vis = tf.expand_dims(kp2d[:, :, 2], -1)
-            kp2d_loss = v1_loss.absolute_difference(kp2d[:, :, :2], kp2d_pred, weights=vis)
+            # kp2d_loss = v1_loss.absolute_difference(kp2d[:, :, :2], kp2d_pred, weights=vis)
+            kp2d_loss = v1_loss.huber_loss(kp2d[:, :, :2], kp2d_pred, weights=vis)
             kp2d_loss = kp2d_loss * self.config.GENERATOR_2D_LOSS_WEIGHT
 
             if self.config.USE_3D:
@@ -198,7 +201,7 @@ class Model:
                 kp3d_real = tf.reshape(kp3d_real, [batch_size, -1])
                 kp3d_pred = tf.reshape(kp3d_pred, [batch_size, -1])
 
-                kp3d_loss = v1_loss.mean_squared_error(kp3d_real, kp3d_pred, weights=has3d) * 0.5
+                kp3d_loss = v1_loss.huber_loss(kp3d_real, kp3d_pred, weights=has3d)
                 kp3d_loss = kp3d_loss * self.config.GENERATOR_3D_LOSS_WEIGHT
 
                 """Calculating pose and shape loss basically makes no sense
@@ -217,7 +220,8 @@ class Model:
                 has_smpl = tf.expand_dims(has_smpl, -1)
                 pose_shape_real = tf.zeros(pose_shape_pred.shape)
 
-                ps_loss = v1_loss.mean_squared_error(pose_shape_real, pose_shape_pred, weights=has_smpl) * 0.5
+                # ps_loss = v1_loss.mean_squared_error(pose_shape_real, pose_shape_pred, weights=has_smpl) * 0.5
+                ps_loss = 0.0
                 ps_loss = ps_loss * self.config.GENERATOR_3D_LOSS_WEIGHT
 
             # use all poses and shapes from iterative feedback loop
