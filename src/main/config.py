@@ -24,7 +24,7 @@ class Config(object):
     ROOT_PROJECT_DIR = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
 
     # root data directory
-    ROOT_DATA_DIR = os.path.join('/', 'development', 'datasets')
+    ROOT_DATA_DIR = os.path.join('/', 'home', 'konrad', 'Development', 'Datasets', 'hmr_datasets')
 
     # path to save training models to
     LOG_DIR = os.path.join(ROOT_DATA_DIR, 'logs', datetime.now().strftime("%d%m%Y-%H%M%S"))
@@ -98,10 +98,10 @@ class Config(object):
     INITIALIZE_CUSTOM_REGRESSOR = False
 
     # number of epochs to train
-    EPOCHS = 100
+    EPOCHS = 55
 
     # effective batch size
-    BATCH_SIZE = 128
+    BATCH_SIZE = 126
 
     # number of parallel read tf record files
     NUM_PARALLEL = 32
@@ -175,6 +175,9 @@ class Config(object):
 
     # total number of vertices
     NUM_VERTICES = 6890
+
+    # list of bones defined by their start and end joint index
+    BONES = [(0, 1), (1, 2), (3, 4), (4, 5), (6, 7), (7, 8), (9, 10), (10, 11), (12, 13)]
 
     def __init__(self):
         if self.__initialized:

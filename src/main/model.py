@@ -10,6 +10,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 
+# DEBUG
+# tf.config.run_functions_eagerly(True)
+
 try:
     from IPython import get_ipython
 
@@ -195,10 +198,26 @@ class Model:
                 kp3d_real = batch_align_by_pelvis(kp3d)
                 kp3d_pred = batch_align_by_pelvis(kp3d_pred[:, :self.config.NUM_KP3D, :])
 
+                # Bone Length penalty
+                start_joints_real = tf.gather(kp3d_real, [pair[0] for pair in self.config.BONES], axis=1)
+                end_joints_real = tf.gather(kp3d_real, [pair[1] for pair in self.config.BONES], axis=1)
+
+                start_joints_pred = tf.gather(kp3d_pred, [pair[0] for pair in self.config.BONES], axis=1)
+                end_joints_pred = tf.gather(kp3d_pred, [pair[1] for pair in self.config.BONES], axis=1)
+
+                bone_lengths_real = tf.norm(start_joints_real - end_joints_real, axis=2)
+                bone_lengths_pred = tf.norm(start_joints_pred - end_joints_pred, axis=2)
+
+                bone_length_loss = v1_loss.mean_squared_error(bone_lengths_real, bone_lengths_pred, weights=has3d)
+
+                # 3D keypoint loss
                 kp3d_real = tf.reshape(kp3d_real, [batch_size, -1])
                 kp3d_pred = tf.reshape(kp3d_pred, [batch_size, -1])
 
                 kp3d_loss = v1_loss.mean_squared_error(kp3d_real, kp3d_pred, weights=has3d) * 0.5
+
+                # add bone length loss to kp3d loss
+                kp3d_loss = kp3d_loss + bone_length_loss
                 kp3d_loss = kp3d_loss * self.config.GENERATOR_3D_LOSS_WEIGHT
 
                 """Calculating pose and shape loss basically makes no sense
