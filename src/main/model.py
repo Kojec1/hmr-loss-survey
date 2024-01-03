@@ -2,6 +2,8 @@ import os
 import sys
 import time
 
+import numpy as np
+
 # to make run from console for module import
 sys.path.append(os.path.abspath(".."))
 
@@ -179,6 +181,29 @@ class Model:
         self.checkpoint_manager.save(self.config.EPOCHS + 1)
 
     @tf.function
+    def _normalized_mean_error(self, gt, pred, vis):
+        # Calculate L2 norms (Euclidean distances) for each example in the batch
+        norms = tf.norm(pred - gt, axis=2)
+        # Apply visibility mask
+        visible_norms = norms * vis
+        # Vectorized calculation of the average distance between all pairs of keypoints
+        # Expanding ground_truths to shape [batch_size, num_keypoints, num_keypoints, 2]
+        expanded_ground_truths = tf.expand_dims(gt, 2)
+        # Broadcasting subtraction to get pairwise differences
+        pairwise_diffs = expanded_ground_truths - tf.transpose(expanded_ground_truths, [0, 2, 1, 3])
+        pairwise_distances = tf.norm(pairwise_diffs, axis=3)
+        # Mask to remove self-distances and duplicates
+        mask = tf.linalg.band_part(tf.ones_like(pairwise_distances), -1, 0)
+        masked_distances = tf.where(mask == 1, pairwise_distances, tf.zeros_like(pairwise_distances))
+        # Calculate average distance
+        normalization_factors = tf.reduce_sum(masked_distances, axis=[1, 2]) / (
+                tf.reduce_sum(mask, axis=[1, 2]) + 1e-6)
+        # Normalize errors for each example in the batch
+        normalized_errors = visible_norms / tf.expand_dims(normalization_factors, -1)
+        # Calculate mean error across all keypoints and examples, considering only visible keypoints
+        return tf.reduce_sum(normalized_errors) / tf.reduce_sum(vis)
+
+    @tf.function
     def _train_step(self, images, kp2d, kp3d, has3d, theta):
         tf.keras.backend.set_learning_phase(1)
         batch_size = images.shape[0]
@@ -189,35 +214,28 @@ class Model:
             _, kp2d_pred, kp3d_pred, pose_pred, shape_pred, _ = generator_outputs[-1]
 
             vis = tf.expand_dims(kp2d[:, :, 2], -1)
-            kp2d_loss = v1_loss.absolute_difference(kp2d[:, :, :2], kp2d_pred, weights=vis)
+            # kp2d_loss_old = v1_loss.absolute_difference(kp2d[:, :, :2], kp2d_pred, weights=vis) * self.config.GENERATOR_2D_LOSS_WEIGHT
+
+            kp2d_loss = self._normalized_mean_error(kp2d[:, :, :2], kp2d_pred, vis[:, :, 0])
             kp2d_loss = kp2d_loss * self.config.GENERATOR_2D_LOSS_WEIGHT
 
             if self.config.USE_3D:
                 has3d = tf.expand_dims(has3d, -1)
+                has3d_old = has3d
+                has3d = tf.tile(has3d, [1, self.config.NUM_KP3D])
+                has3d = tf.cast(has3d, tf.float32)
 
                 kp3d_real = batch_align_by_pelvis(kp3d)
                 kp3d_pred = batch_align_by_pelvis(kp3d_pred[:, :self.config.NUM_KP3D, :])
 
-                # Bone Length penalty
-                start_joints_real = tf.gather(kp3d_real, [pair[0] for pair in self.config.BONES], axis=1)
-                end_joints_real = tf.gather(kp3d_real, [pair[1] for pair in self.config.BONES], axis=1)
-
-                start_joints_pred = tf.gather(kp3d_pred, [pair[0] for pair in self.config.BONES], axis=1)
-                end_joints_pred = tf.gather(kp3d_pred, [pair[1] for pair in self.config.BONES], axis=1)
-
-                bone_lengths_real = tf.norm(start_joints_real - end_joints_real, axis=2)
-                bone_lengths_pred = tf.norm(start_joints_pred - end_joints_pred, axis=2)
-
-                bone_length_loss = v1_loss.mean_squared_error(bone_lengths_real, bone_lengths_pred, weights=has3d)
-
                 # 3D keypoint loss
-                kp3d_real = tf.reshape(kp3d_real, [batch_size, -1])
-                kp3d_pred = tf.reshape(kp3d_pred, [batch_size, -1])
+                kp3d_real_old = tf.reshape(kp3d_real, [batch_size, -1])
+                kp3d_pred_old = tf.reshape(kp3d_pred, [batch_size, -1])
 
-                kp3d_loss = v1_loss.mean_squared_error(kp3d_real, kp3d_pred, weights=has3d) * 0.5
+                # kp3d_loss_old = v1_loss.mean_squared_error(kp3d_real_old, kp3d_pred_old, weights=has3d_old) * 0.5
 
-                # add bone length loss to kp3d loss
-                kp3d_loss = kp3d_loss + bone_length_loss
+                kp3d_loss = self._normalized_mean_error(kp3d_real, kp3d_pred, has3d)
+                kp3d_loss = tf.where(tf.math.is_nan(kp3d_loss), 0.0, kp3d_loss)
                 kp3d_loss = kp3d_loss * self.config.GENERATOR_3D_LOSS_WEIGHT
 
                 """Calculating pose and shape loss basically makes no sense
