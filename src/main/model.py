@@ -217,11 +217,11 @@ class Model:
             # kp2d_loss_old = v1_loss.absolute_difference(kp2d[:, :, :2], kp2d_pred, weights=vis) * self.config.GENERATOR_2D_LOSS_WEIGHT
 
             kp2d_loss = self._normalized_mean_error(kp2d[:, :, :2], kp2d_pred, vis[:, :, 0])
+            kp2d_loss = tf.where(tf.math.is_nan(kp2d_loss), 0.0, kp2d_loss)
             kp2d_loss = kp2d_loss * self.config.GENERATOR_2D_LOSS_WEIGHT
 
             if self.config.USE_3D:
                 has3d = tf.expand_dims(has3d, -1)
-                has3d_old = has3d
                 has3d = tf.tile(has3d, [1, self.config.NUM_KP3D])
                 has3d = tf.cast(has3d, tf.float32)
 
@@ -229,8 +229,8 @@ class Model:
                 kp3d_pred = batch_align_by_pelvis(kp3d_pred[:, :self.config.NUM_KP3D, :])
 
                 # 3D keypoint loss
-                kp3d_real_old = tf.reshape(kp3d_real, [batch_size, -1])
-                kp3d_pred_old = tf.reshape(kp3d_pred, [batch_size, -1])
+                # kp3d_real = tf.reshape(kp3d_real, [batch_size, -1])
+                # kp3d_pred = tf.reshape(kp3d_pred, [batch_size, -1])
 
                 # kp3d_loss_old = v1_loss.mean_squared_error(kp3d_real_old, kp3d_pred_old, weights=has3d_old) * 0.5
 
