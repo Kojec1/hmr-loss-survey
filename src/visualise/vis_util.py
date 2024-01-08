@@ -194,7 +194,68 @@ def visualize(renderer, img, params, verts, cam, joints):
     put_image_on_axis(img_mesh_rot1, 4, 'rotated 60 degree')
     put_image_on_axis(img_mesh_rot2, 5, 'rotated -60 degree')
 
-    plot.show()
+    # save plot
+    plot.savefig('test1.png', bbox_inches='tight', pad_inches=0)
+
+
+def visualize_full(renderer, images, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred, vert):
+    n_samples = images.shape[0]
+
+    gs = gridspec.GridSpec(n_samples, 5, figure=plot.figure(dpi=300, layout='compressed'))
+    # gs.update(wspace=0.25, hspace=0.05)
+    plot.axis('off')
+    plot.clf()
+
+    def plot_2d(img, i):
+        ax = plot.subplot(gs[i])
+        ax.imshow(img)
+        ax.axis('off')
+
+    def plot_3d(joints, img, i):
+        ax = plot.subplot(gs[i], projection='3d')
+        ax.invert_zaxis()
+
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+
+        # Move joints to origin
+        joints[:, 0] = joints[:, 0] - np.mean(joints[:, 0])
+        joints[:, 1] = joints[:, 1] - np.mean(joints[:, 1])
+        joints[:, 2] = joints[:, 2] - np.mean(joints[:, 2])
+
+
+        # Plot 3D joints with connections
+        child, parent, left_right = _get_child_parent_ids(joints.shape[0])
+        for i in np.arange(len(child)):
+            x, y, z = [np.array([joints[parent[i], j], joints[child[i], j]]) for j in range(3)]
+            color = get_color(left_right, i)
+            ax.plot(x, z, y, lw=2, c=color, zorder=10)
+
+        # Plot image on the wall of ax
+        xx, zz = np.meshgrid(np.linspace(0, 1, img.shape[1]), np.linspace(0, 1, img.shape[0]))
+        yy = np.ones(xx.shape)
+        xx, zz = xx * 2 - 1, zz * 2 - 1
+        img = img / 255.
+        ax.plot_surface(xx, yy, zz, rstride=1, cstride=1, facecolors=img)
+
+    for i in range(n_samples):
+        img_kp2d_gt = draw_2d_on_image(images[i] * 255., kp2d_gt[i, :, :2], vis=kp2d_gt[i, :, 2])
+
+        vis_pred = np.ones(kp2d_pred[i].shape[0])
+        img_kp2d_pred = draw_2d_on_image(images[i] * 255., kp2d_pred[i], vis=vis_pred)
+
+        mesh = renderer(vert, img_size=images[i].shape[:2])
+        img_mesh = renderer(vert, img=images[i], bg_color=np.array((255.0, 255.0, 255.0, 1)))
+
+        plot_2d(images[i], i * 5)
+        plot_3d(kp3d_gt[i], img_kp2d_gt, i * 5 + 1)
+        plot_3d(kp3d_pred[i], img_kp2d_pred, i * 5 + 2)
+        plot_2d(mesh, i * 5 + 3)
+        plot_2d(img_mesh, i * 5 + 4)
+
+    # save plot
+    plot.savefig('test2.png', bbox_inches='tight', pad_inches=0)
 
 
 def draw_2d_on_image(input_image, joints, draw_edges=True, vis=None):
@@ -298,28 +359,28 @@ def show_3d_pose(joints, ax):
     for i in np.arange(len(child)):
         x, y, z = [np.array([joints[parent[i], j], joints[child[i], j]]) for j in range(3)]
         color = get_color(left_right, i)
-        ax.plot(x, z, y, lw=2, c=color)
+        ax.plot(x, z, y, lw=2, c=color, zorder=10)
 
-    ax.invert_zaxis()
+    # ax.invert_zaxis()
+    #
+    # # Get rid of the ticks and tick labels
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    # ax.set_zticks([])
+    #
+    # ax.get_xaxis().set_ticklabels([])
+    # ax.get_yaxis().set_ticklabels([])
+    # ax.set_zticklabels([])
 
-    # Get rid of the ticks and tick labels
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-
-    ax.get_xaxis().set_ticklabels([])
-    ax.get_yaxis().set_ticklabels([])
-    ax.set_zticklabels([])
-
-    # Get rid of the panes (actually, make them white) but keep z pane
-    white = (1.0, 1.0, 1.0, 0.0)
-    ax.w_xaxis.set_pane_color(white)
-    ax.w_yaxis.set_pane_color(white)
-
-    # Get rid of the lines in 3d
-    ax.w_xaxis.line.set_color(white)
-    ax.w_yaxis.line.set_color(white)
-    ax.w_zaxis.line.set_color(white)
+    # # Get rid of the panes (actually, make them white) but keep z pane
+    # white = (1.0, 1.0, 1.0, 0.0)
+    # ax.w_xaxis.set_pane_color(white)
+    # ax.w_yaxis.set_pane_color(white)
+    #
+    # # Get rid of the lines in 3d
+    # ax.w_xaxis.line.set_color(white)
+    # ax.w_yaxis.line.set_color(white)
+    # ax.w_zaxis.line.set_color(white)
 
 
 def display_table(table):
@@ -370,12 +431,13 @@ def display_weight_stats(_model):
 
 if __name__ == '__main__':
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+    import mpl_toolkits.mplot3d.art3d as art3d
 
 
     class DastasetConfig(LocalConfig):
-        # DATA_DIR = join('/', 'data', 'ssd1', 'russales', 'new_records')
-        # DATASETS = ['coco'] #['lsp', 'lsp_ext', 'mpii', 'coco', 'mpii_3d', 'h36m']
-        # SMPL_DATASETS = ['cmu', 'joint_lim']
+        DATA_DIR = os.path.join('/', 'home', 'konrad', 'Development', 'Datasets', 'hmr_datasets', 'tfrecords')
+        DATASETS = ['mpii_3d'] #['lsp', 'lsp_ext', 'mpii', 'coco', 'mpii_3d', 'h36m']
+        SMPL_DATASETS = ['cmu', 'joint_lim']
         TRANS_MAX = 20
 
 
@@ -388,23 +450,39 @@ if __name__ == '__main__':
     with tf.device('/CPU:0'):
         dataset = Dataset()
         ds_train = dataset.get_train()
-        ds_smpl = dataset.get_smpl()
-        ds_val = dataset.get_val()
+        #ds_smpl = dataset.get_smpl()
+        # ds_val = dataset.get_val()
+        # ds_test = dataset.get_test()
 
     import matplotlib.pyplot as plt
 
     for images, kp2d, kp3d, has3d in ds_train.take(1):
         fig = plt.figure(figsize=(9.6, 5.4))
-        image_orig = tf.image.decode_jpeg(images[0], channels=3)
-        image_orig = image_orig.numpy()
+        # image_orig = tf.image.decode_jpeg(images[0], channels=3)
+        image_orig = ((images[0].numpy() + 1.0) * 127.5).astype(np.uint8)
         kp2d = kp2d[0].numpy()
         ax0 = fig.add_subplot(111)
         image_2d = draw_2d_on_image(image_orig, kp2d[:, :2], vis=kp2d[:, 2])
         ax0.imshow(image_2d)
+        plt.savefig('image2d.png', bbox_inches='tight', pad_inches=0)
 
         fig2 = plt.figure(figsize=(9.6, 5.4))
         kp3d = kp3d[0].numpy()
+        kp3d[:, 2] = kp3d[:, 2] - np.mean(kp3d[:, 2])
+
         ax1 = fig2.add_subplot(121, projection='3d')
+
         show_3d_pose(kp3d, ax1)
 
-        plt.show()
+        # show image_orig on the wall of ax1
+        xx, zz = np.meshgrid(np.linspace(0, 1, 224), np.linspace(0, 1, 224))
+        yy = np.ones(xx.shape)
+        xx, zz = xx * 2 - 1, zz * 2 - 1
+        image_2d = image_2d / 255.
+        ax1.plot_surface(xx, yy, zz, rstride=1, cstride=1, facecolors=image_2d)
+
+        ax1.invert_zaxis()
+
+        # save plot
+        plt.savefig('kp3d.png', bbox_inches='tight', pad_inches=0)
+        break

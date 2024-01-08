@@ -23,10 +23,13 @@ class Dataset(object):
     #  Train/Val Dataset Loader
     ############################################################
 
-    def get_train(self):
+    def get_train(self, augment=True):
         start = time()
         print('initialize train dataset...')
-        dataset = self.create_dataset('train', self._parse, self._random_jitter)
+        if augment:
+            dataset = self.create_dataset('train', self._parse, self._random_jitter)
+        else:
+            dataset = self.create_dataset('train', self._parse)
         dataset = dataset.shuffle(10000, seed=self.config.SEED, reshuffle_each_iteration=True)
         dataset = dataset.batch(self.config.BATCH_SIZE, drop_remainder=True)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
@@ -325,11 +328,25 @@ class Dataset(object):
     #  Inference Dataset Loader
     ############################################################
 
-    def get_data_for(self, example):
-        if not isinstance(example, list):
-            example = [example]
+    def get_infer(self):
+        start = time()
+        print('initialize inference dataset...')
+        tf_record_dirs = [join(self.config.DATA_DIR, dataset, '*_train.tfrecord') for dataset in self.config.DATASETS]
+        tf_records = [tf_record for tf_records in sorted([glob(f) for f in tf_record_dirs]) for tf_record in
+                      tf_records]
 
-        return tf.data.TFRecordDataset(example).map(self._parse_inference).map(self._convert_and_scale_all)
+        drop_remainder = False
+        if self.config.NUM_TEST_SAMPLES % self.config.BATCH_SIZE > 0:
+            drop_remainder = True
+
+        infer_dataset = tf.data.TFRecordDataset(tf_records, num_parallel_reads=self.config.NUM_PARALLEL * 2) \
+            .map(self._parse_inference, num_parallel_calls=self.config.NUM_PARALLEL * 2) \
+            .map(self._convert_and_scale_all, num_parallel_calls=self.config.NUM_PARALLEL * 2) \
+            .batch(self.config.BATCH_SIZE, drop_remainder=drop_remainder) \
+            .prefetch(self.config.NUM_PARALLEL * 2)
+
+        print('Done (t={})\n'.format(time() - start))
+        return infer_dataset
 
     def _parse_inference(self, example_proto):
         feature_map = {

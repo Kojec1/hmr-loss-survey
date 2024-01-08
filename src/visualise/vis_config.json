@@ -1,0 +1,18 @@
+{
+  "models": [
+    {
+      "file_name": "mae_mse",
+      "description": "L_reproj: MAE, L_3Djoints: MSE",
+      "evaluate_angles": true,
+      "config": {
+        "model": "mae_mse",
+        "data_dir": "tfrecords",
+        "datasets": [
+          "mpii_3d"
+        ],
+        "joint_type": "cocoplus",
+        "init_custom_regressor": false
+      }
+    }
+  ]
+}
