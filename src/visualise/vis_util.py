@@ -198,7 +198,7 @@ def visualize(renderer, img, params, verts, cam, joints):
     plot.savefig('test1.png', bbox_inches='tight', pad_inches=0)
 
 
-def visualize_full(renderer, images, cam, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred, vert):
+def visualize_full(path, renderer, images, cam, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred, vert):
     n_samples = images.shape[0]
 
     gs = gridspec.GridSpec(n_samples, 4, figure=plot.figure(dpi=300, layout='compressed'))
@@ -256,7 +256,7 @@ def visualize_full(renderer, images, cam, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred
         img_kp2d_pred = draw_2d_on_image(images[i] * 255., kp2d_pred[i], vis=vis_pred)
 
         shifted_vert = shift_vert(vert[i], cam[i])
-        mesh = renderer(vert[i], img_size=images[i].shape[:2])
+        mesh = renderer(shifted_vert, img_size=images[i].shape[:2])
 
         plot_2d(images[i], i * 4)
         plot_3d(kp3d_gt[i], img_kp2d_gt, i * 4 + 1)
@@ -264,7 +264,7 @@ def visualize_full(renderer, images, cam, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred
         plot_2d(mesh, i * 4 + 3)
 
     # save plot
-    plot.savefig('test2.png', bbox_inches='tight', pad_inches=0)
+    plot.savefig(path, bbox_inches='tight', pad_inches=0)
 
 
 def draw_2d_on_image(input_image, joints, draw_edges=True, vis=None):

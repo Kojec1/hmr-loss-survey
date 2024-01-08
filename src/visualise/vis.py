@@ -39,6 +39,7 @@ if __name__ == '__main__':
     for setting, models in vis_config.items():
         for model in models:
             config = model['config']
+            model_name = model['name']
 
             class VisConfig(Config):
                 ENCODER_ONLY = True
@@ -75,5 +76,7 @@ if __name__ == '__main__':
                 joints_3D = result['kp3d']
                 joints_3D = batch_align_by_pelvis(joints_3D).numpy()
 
+                path = 'figures/{}/{}.png'.format(setting, model_name)
+
                 renderer = TrimeshRenderer()
-                visualize_full(renderer, images, cam, kp2d, kp3d, joints_2D, joints_3D, vertices)
+                visualize_full(path, renderer, images, cam, kp2d, kp3d, joints_2D, joints_3D, vertices)

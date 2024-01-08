@@ -3,15 +3,67 @@
     {
       "file_name": "mae_mse",
       "description": "L_reproj: MAE, L_3Djoints: MSE",
-      "evaluate_angles": true,
       "config": {
         "model": "mae_mse",
         "data_dir": "tfrecords",
         "datasets": [
           "mpii_3d"
-        ],
-        "joint_type": "cocoplus",
-        "init_custom_regressor": false
+        ]
+      }
+    },
+    {
+      "file_name": "mse_mae",
+      "description": "L_reproj: MSE, L_3Djoints: MAE",
+      "config": {
+        "model": "mse_mae",
+        "data_dir": "tfrecords",
+        "datasets": [
+          "mpii_3d"
+        ]
+      }
+    },
+    {
+      "file_name": "huberv1",
+      "description": "Huber Loss, delta=1.0",
+      "config": {
+        "model": "huberv1",
+        "data_dir": "tfrecords",
+        "datasets": [
+          "mpii_3d"
+        ]
+      }
+    },
+        {
+      "file_name": "huberv2",
+      "description": "Huber Loss, delta=1.5",
+      "config": {
+        "model": "huberv2",
+        "data_dir": "tfrecords",
+        "datasets": [
+          "mpii_3d"
+        ]
+      }
+    },
+        {
+      "file_name": "normalized",
+      "description": "Normalized Mean Error",
+      "config": {
+        "model": "normalized",
+        "data_dir": "tfrecords",
+        "datasets": [
+          "mpii_3d"
+        ]
+      }
+    },
+    {
+      "file_name": "soft_constraint",
+      "description": "Bone Length L2 loss",
+      "config": {
+        "model": "soft_constraint",
+        "data_dir": "tfrecords",
+        "datasets": [
+          "mpii_3d"
+        ]
       }
     }
   ]
