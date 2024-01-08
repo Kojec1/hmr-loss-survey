@@ -42,8 +42,8 @@ if __name__ == '__main__':
 
             class VisConfig(Config):
                 ENCODER_ONLY = True
-                LOG_DIR = join('/', 'home', 'konrad', 'PycharmProjects', 'hmr-loss-survey', 'logs', setting, config['model'])
-                DATA_DIR = join('/', 'home', 'konrad', 'Development', 'Datasets', 'hmr_datasets', config['data_dir'])
+                LOG_DIR = join('/', 'development', 'datasets', 'logs', setting, config['model'])
+                DATA_DIR = join('/', 'development', 'datasets', config['data_dir'])
                 DATASETS = config['datasets']
                 JOINT_TYPE = config['joint_type']
                 INITIALIZE_CUSTOM_REGRESSOR = config['init_custom_regressor']
@@ -76,4 +76,4 @@ if __name__ == '__main__':
                 joints_3D = batch_align_by_pelvis(joints_3D).numpy()
 
                 renderer = TrimeshRenderer()
-                visualize_full(renderer, images, kp2d, kp3d, joints_2D, joints_3D)
+                visualize_full(renderer, images, cam, kp2d, kp3d, joints_2D, joints_3D, vertices)

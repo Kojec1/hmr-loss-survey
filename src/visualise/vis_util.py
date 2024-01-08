@@ -198,13 +198,23 @@ def visualize(renderer, img, params, verts, cam, joints):
     plot.savefig('test1.png', bbox_inches='tight', pad_inches=0)
 
 
-def visualize_full(renderer, images, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred, vert):
+def visualize_full(renderer, images, cam, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred, vert):
     n_samples = images.shape[0]
 
-    gs = gridspec.GridSpec(n_samples, 5, figure=plot.figure(dpi=300, layout='compressed'))
+    gs = gridspec.GridSpec(n_samples, 4, figure=plot.figure(dpi=300, layout='compressed'))
     # gs.update(wspace=0.25, hspace=0.05)
     plot.axis('off')
     plot.clf()
+
+    def shift_vert(vert, cam):
+        cam_scale = cam[0]
+        cam_trans = cam[1:]
+
+        focal = 500.
+        trans_z = focal / (0.5 * 224 * cam_scale)
+        trans = np.hstack([cam_trans, trans_z])
+
+        return vert + trans
 
     def plot_2d(img, i):
         ax = plot.subplot(gs[i])
@@ -245,14 +255,13 @@ def visualize_full(renderer, images, kp2d_gt, kp3d_gt, kp2d_pred, kp3d_pred, ver
         vis_pred = np.ones(kp2d_pred[i].shape[0])
         img_kp2d_pred = draw_2d_on_image(images[i] * 255., kp2d_pred[i], vis=vis_pred)
 
-        mesh = renderer(vert, img_size=images[i].shape[:2])
-        img_mesh = renderer(vert, img=images[i], bg_color=np.array((255.0, 255.0, 255.0, 1)))
+        shifted_vert = shift_vert(vert[i], cam[i])
+        mesh = renderer(vert[i], img_size=images[i].shape[:2])
 
-        plot_2d(images[i], i * 5)
-        plot_3d(kp3d_gt[i], img_kp2d_gt, i * 5 + 1)
-        plot_3d(kp3d_pred[i], img_kp2d_pred, i * 5 + 2)
-        plot_2d(mesh, i * 5 + 3)
-        plot_2d(img_mesh, i * 5 + 4)
+        plot_2d(images[i], i * 4)
+        plot_3d(kp3d_gt[i], img_kp2d_gt, i * 4 + 1)
+        plot_3d(kp3d_pred[i], img_kp2d_pred, i * 4 + 2)
+        plot_2d(mesh, i * 4 + 3)
 
     # save plot
     plot.savefig('test2.png', bbox_inches='tight', pad_inches=0)
